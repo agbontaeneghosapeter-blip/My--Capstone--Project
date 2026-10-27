@@ -42,7 +42,14 @@ function getTier(store, tierId) {
 }
 
 export function createEvent(store, { title, city, venue = '', startsAt, organizerId }) {
-  const date = new Date(startsAt);
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.exec(startsAt);
+  const date = isoDate ? new Date(startsAt) : new Date(NaN);
+  const [, yearText, monthText, dayText] = isoDate ?? [];
+  const maxDay = isoDate ? new Date(Date.UTC(Number(yearText), Number(monthText), 0)).getUTCDate() : 0;
+  if (isoDate && (Number(monthText) < 1 || Number(monthText) > 12 ||
+      Number(dayText) < 1 || Number(dayText) > maxDay)) {
+    date.setTime(NaN);
+  }
   if (Number.isNaN(date.getTime())) {
     throw new DomainError('VALIDATION', 'startsAt must be a valid date');
   }
@@ -77,6 +84,42 @@ export function addTier(store, eventId, { name, priceCents, capacity }) {
   store.waitlists.set(tier.id, new Queue());
   event.tierIds.push(tier.id);
   return tier;
+}
+
+export function publishEvent(store, eventId) {
+  const event = store.events.get(eventId);
+  if (!event) throw new DomainError('NOT_FOUND', 'Event not found');
+  if (event.tierIds.length === 0) {
+    throw new DomainError('INVALID_STATE', 'An event needs a ticket tier before it can be published');
+  }
+  event.status = 'published';
+  return event;
+}
+
+export function listEventSummaries(store, { publishedOnly = true } = {}) {
+  const summaries = [];
+  for (const event of store.events.values()) {
+    if (publishedOnly && event.status !== 'published') continue;
+    summaries.push({
+      id: event.id,
+      title: event.title,
+      city: event.city,
+      venue: event.venue,
+      startsAt: event.startsAt,
+      status: event.status,
+      tiers: event.tierIds.map((tierId) => {
+        const tier = store.tiers.get(tierId);
+        return {
+          id: tier.id,
+          name: tier.name,
+          priceCents: tier.priceCents,
+          capacity: tier.capacity,
+          sold: tier.sold,
+        };
+      }),
+    });
+  }
+  return summaries;
 }
 
 export function seatsLeft(tier) {

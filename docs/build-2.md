@@ -36,7 +36,15 @@
 
 ### S04: As an organizer, I want to publish and unpublish an event, so that I control when it goes public
 
-*Written by you, in pairs, during the Build 2 class. Add your three criteria here before you paste the AI prompt below.*
+- **Given** a draft event with at least one ticket tier
+  **When** the organizer publishes it
+  **Then** the event is marked as published and returned.
+- **Given** a draft event with no ticket tiers
+  **When** the organizer publishes it
+  **Then** the request is rejected with `INVALID_STATE` and the event stays a draft.
+- **Given** published and draft events
+  **When** the public event list is requested
+  **Then** only published events are returned.
 
 ### S05: As an attendee, I want to search, filter and sort published events, so that I can find one I like
 
