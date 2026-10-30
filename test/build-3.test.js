@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +13,8 @@ import { createApp } from '../src/http/app.js';
 import { Router } from '../src/http/router.js';
 import { loadConfig } from '../src/config.js';
 
-test('booking state machine permits every specified transition', () => {
+describe('booking state machine', () => {
+test('permits every specified transition', () => {
   const allowed = [
     ['pending', 'paid'],
     ['pending', 'cancelled'],
@@ -28,7 +29,7 @@ test('booking state machine permits every specified transition', () => {
   }
 });
 
-test('booking state machine refuses every unspecified transition', () => {
+test('refuses every unspecified transition', () => {
   const states = Object.values(BOOKING_STATES);
   for (const from of states) {
     for (const to of states) {
@@ -41,13 +42,15 @@ test('booking state machine refuses every unspecified transition', () => {
   }
 });
 
-test('booking state machine rejects unknown states', () => {
+test('rejects unknown states', () => {
   assert.equal(canTransition('unknown', 'paid'), false);
   assert.throws(() => assertTransition('pending', 'unknown'), (error) => (
     error instanceof DomainError && error.code === 'INVALID_TRANSITION'
   ));
 });
+});
 
+describe('router', () => {
 test('router matches method and path parameters', () => {
   const handler = () => ({ status: 'ok' });
   const router = new Router().add('get', '/events/:eventId/bookings/:bookingId', handler);
@@ -58,12 +61,15 @@ test('router matches method and path parameters', () => {
   assert.equal(router.match('POST', '/events/event%201/bookings/booking-2'), null);
   assert.equal(router.match('GET', '/events/event-1/bookings'), null);
 });
+});
 
+describe('server config', () => {
 test('server config defaults the port and accepts a valid PORT override', () => {
   assert.deepEqual(loadConfig({}), { port: 3000 });
   assert.deepEqual(loadConfig({ PORT: '4200' }), { port: 4200 });
   assert.deepEqual(loadConfig({ PORT: '0' }), { port: 0 });
   assert.throws(() => loadConfig({ PORT: 'not-a-port' }), RangeError);
+});
 });
 
 function request(server, path, { method = 'GET', body } = {}) {
@@ -90,7 +96,8 @@ function request(server, path, { method = 'GET', body } = {}) {
   });
 }
 
-test('HTTP app serves health, routes, JSON errors, and only files inside public', async () => {
+describe('HTTP app', () => {
+test('serves health, routes, JSON errors, and only files inside public', async () => {
   const router = new Router()
     .add('POST', '/api/echo', ({ body }) => ({ received: body }))
     .add('GET', '/api/failure', () => {
@@ -141,4 +148,5 @@ test('HTTP app serves health, routes, JSON errors, and only files inside public'
   } finally {
     await new Promise((resolve, reject) => app.close((error) => (error ? reject(error) : resolve())));
   }
+});
 });

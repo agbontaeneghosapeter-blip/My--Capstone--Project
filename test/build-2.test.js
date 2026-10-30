@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addTier,
@@ -52,6 +52,7 @@ function summary(id, title, startsAt, prices = [], remainingSeats = 0, overrides
   };
 }
 
+describe('inventory', () => {
 test('S02: creates a new draft event hidden from the public list', () => {
   const store = createStore();
   const event = eventFixture(store);
@@ -130,7 +131,9 @@ test('S04: publishing and unpublishing an unknown event fail with NOT_FOUND', ()
   expectCode('NOT_FOUND', () => publishEvent(store, 'missing'));
   expectCode('NOT_FOUND', () => unpublishEvent(store, 'missing'));
 });
+});
 
+describe('event search', () => {
 test('S05: searches title and venue case-insensitively', () => {
   const events = [
     summary('lagos', 'Lagos Tech Meetup', '2026-12-05T17:00:00Z'),
@@ -208,7 +211,9 @@ test('S05: empty event lists remain empty through filtering, sorting, and search
   assert.deepEqual(sortEvents([], 'date'), []);
   assert.deepEqual(searchEvents([], {}, 'price'), []);
 });
+});
 
+describe('booking', () => {
 test('S06: booking creates a pending booking for the requested quantity and cents', () => {
   const store = createStore();
   const event = eventFixture(store);
@@ -241,7 +246,9 @@ test('S06: rejects zero, negative, fractional, and over-limit quantities', () =>
   assert.equal(seatsLeft(tier), 20);
   assert.equal(store.bookings.size, 0);
 });
+});
 
+describe('mergeSort', () => {
 test('merge sort returns a stable new array and leaves its input untouched', () => {
   const values = [
     { key: 2, order: 'first' },
@@ -252,4 +259,5 @@ test('merge sort returns a stable new array and leaves its input untouched', () 
   assert.notStrictEqual(sorted, values);
   assert.deepEqual(sorted.map((item) => item.order), ['middle', 'first', 'last']);
   assert.deepEqual(values.map((item) => item.order), ['first', 'middle', 'last']);
+});
 });
