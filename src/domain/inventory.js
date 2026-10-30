@@ -41,11 +41,32 @@ function getTier(store, tierId) {
   return tier;
 }
 
-export function createEvent(store, { title, city, venue = '', startsAt, organizerId }) {
-  const date = new Date(startsAt);
-  if (Number.isNaN(date.getTime())) {
-    throw new DomainError('VALIDATION', 'startsAt must be a valid date');
+function parseIsoDate(value, field) {
+  const match = typeof value === 'string'
+    ? /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2}))?$/.exec(value)
+    : null;
+  if (!match) throw new DomainError('VALIDATION', `${field} must be a valid ISO date`);
+
+  const [, yearText, monthText, dayText, hour, minute, second, , offset] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const daysInMonth = [31, year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28,
+    31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const validDate = month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth[month - 1];
+  const validTime = hour === undefined
+    || (Number(hour) <= 23 && Number(minute) <= 59 && Number(second ?? 0) <= 59);
+  const validOffset = !offset || offset === 'Z'
+    || (Number(offset.slice(1, 3)) <= 23 && Number(offset.slice(4, 6)) <= 59);
+  const date = new Date(value);
+  if (!validDate || !validTime || !validOffset || Number.isNaN(date.getTime())) {
+    throw new DomainError('VALIDATION', `${field} must be a valid ISO date`);
   }
+  return date;
+}
+
+export function createEvent(store, { title, city, venue = '', startsAt, organizerId }) {
+  const date = parseIsoDate(startsAt, 'startsAt');
   const event = {
     id: newId(),
     organizerId,
@@ -77,6 +98,41 @@ export function addTier(store, eventId, { name, priceCents, capacity }) {
   store.waitlists.set(tier.id, new Queue());
   event.tierIds.push(tier.id);
   return tier;
+}
+
+export function publishEvent(store, eventId) {
+  const event = store.events.get(eventId);
+  if (!event) throw new DomainError('NOT_FOUND', 'Event not found');
+  if (event.tierIds.length === 0) {
+    throw new DomainError('INVALID_STATE', 'An event needs at least one ticket tier before it can be published');
+  }
+  event.status = 'published';
+  return event;
+}
+
+export function unpublishEvent(store, eventId) {
+  const event = store.events.get(eventId);
+  if (!event) throw new DomainError('NOT_FOUND', 'Event not found');
+  event.status = 'draft';
+  return event;
+}
+
+export function listEventSummaries(store, { publishedOnly = true } = {}) {
+  return [...store.events.values()]
+    .filter((event) => !publishedOnly || event.status === 'published')
+    .map((event) => ({
+      id: event.id,
+      organizerId: event.organizerId,
+      title: event.title,
+      city: event.city,
+      venue: event.venue,
+      startsAt: event.startsAt,
+      status: event.status,
+      tiers: event.tierIds.map((tierId) => {
+        const tier = store.tiers.get(tierId);
+        return { ...tier, seatsLeft: seatsLeft(tier) };
+      }),
+    }));
 }
 
 export function seatsLeft(tier) {
