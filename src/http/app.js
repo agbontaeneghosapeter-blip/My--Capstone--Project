@@ -3,7 +3,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DomainError } from '../domain/errors.js';
-import { Router } from './router.js';
+import { createMemoryRepository } from '../repositories/memory.js';
+import { charge } from '../lib/mockPaymentGateway.js';
+import { createApiRouter } from './apiRoutes.js';
 
 const DEFAULT_PUBLIC_DIR = fileURLToPath(new URL('../../public/', import.meta.url));
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -16,6 +18,7 @@ const STATUS_BY_CODE = {
   INVALID_STATE: 409,
   SOLD_OUT: 409,
   FORBIDDEN: 403,
+  PAYMENT_DECLINED: 402,
   PAYLOAD_TOO_LARGE: 413,
 };
 const CONTENT_TYPES = {
@@ -131,7 +134,13 @@ function sendThrownError(response, error, headOnly) {
   sendError(response, statusCode, error.code, error.message, headOnly);
 }
 
-export function createApp({ router = new Router(), publicDir = DEFAULT_PUBLIC_DIR } = {}) {
+export function createApp({
+  router,
+  publicDir = DEFAULT_PUBLIC_DIR,
+  repository = createMemoryRepository(),
+  paymentGateway = { charge },
+} = {}) {
+  const activeRouter = router ?? createApiRouter({ repository, paymentGateway });
   return createServer(async (request, response) => {
     const headOnly = request.method === 'HEAD';
     try {
@@ -145,7 +154,7 @@ export function createApp({ router = new Router(), publicDir = DEFAULT_PUBLIC_DI
         return;
       }
 
-      const match = router.match(request.method, url.pathname);
+      const match = activeRouter.match(request.method, url.pathname);
       if (match) {
         const result = await match.handler({ request, params: match.params, body });
         if (result === undefined) {

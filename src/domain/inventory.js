@@ -1,6 +1,5 @@
 // Build 1: the domain core, running entirely in memory.
-// No server, no database. Just objects, Maps and rules.
-// Build 4 replaces this file with services + repositories.
+// The API uses services and repositories while reusing these domain rules.
 
 import { newId, referenceCode } from './ids.js';
 import { Queue } from './waitlistQueue.js';
@@ -41,7 +40,7 @@ function getTier(store, tierId) {
   return tier;
 }
 
-function parseIsoDate(value, field) {
+export function parseIsoDate(value, field) {
   const match = typeof value === 'string'
     ? /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2}))?$/.exec(value)
     : null;
