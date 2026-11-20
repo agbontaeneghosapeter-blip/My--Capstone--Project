@@ -27,6 +27,13 @@ export function createMemoryRepository() {
       return tiers.get(id);
     },
 
+    async reserveSeats(tierId, quantity) {
+      const tier = tiers.get(tierId);
+      if (!tier || tier.sold + quantity > tier.capacity) return false;
+      tier.sold += quantity;
+      return true;
+    },
+
     async listTiersForEvent(eventId) {
       return [...tiers.values()].filter((tier) => tier.eventId === eventId);
     },

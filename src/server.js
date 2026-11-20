@@ -1,7 +1,9 @@
 import { createApp } from './http/app.js';
 import { config } from './config.js';
+import { createSQLiteRepository } from './repositories/sqlite.js';
 
-const server = createApp();
+const repository = createSQLiteRepository();
+const server = createApp({ repository });
 server.listen(config.port, () => {
   const address = server.address();
   const port = typeof address === 'object' ? address.port : config.port;

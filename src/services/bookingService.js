@@ -66,8 +66,10 @@ export function createBookingService(repository, paymentGateway) {
         reference = referenceCode();
       } while (await repository.getBookingByReference(reference));
 
-      tier.sold += body.quantity;
-      await repository.saveTier(tier);
+      const reserved = await repository.reserveSeats(tier.id, body.quantity);
+      if (!reserved) {
+        throw new DomainError('SOLD_OUT', 'The requested seats are no longer available');
+      }
       return repository.saveBooking({
         id: newId(),
         reference,
