@@ -44,7 +44,7 @@ console.log(`Successful bookings: ${successes}`);
 console.log(`SOLD_OUT responses: ${soldOut}`);
 console.log(`Seats sold: ${storedTier.sold}`);
 console.log(`Tier capacity: ${storedTier.capacity}`);
-console.log('Before fix: 50 successful, 0 SOLD_OUT, 1 seat sold');
+console.log('Before fix (reproduced): 50 successful, 0 SOLD_OUT, 1 seat sold');
 console.log(`After fix: ${successes} successful, ${soldOut} SOLD_OUT, ${storedTier.sold} seat sold`);
 
 repository.close();
