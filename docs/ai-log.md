@@ -32,3 +32,9 @@ Every time you give an AI tool a significant prompt, add an entry. Three lines e
 - **What I asked:** Move the application to SQLite, reproduce the last-seat overselling problem, then fix concurrent reservations atomically.
 - **What came back:** Added the SQLite schema and repository, seed and oversell demo scripts, and a 50-request concurrency test.
 - **What was wrong (or "nothing"):** I corrected the demo to label the reproduced before-fix numbers separately from the observed after-fix numbers. A lock variable would not work because it is local to one JavaScript process and different processes or server instances do not share it. Checking availability and reserving in separate statements would not work because availability may change after the check; the atomic conditional update alone decides whether the reservation won.
+
+## Build 6
+
+- **What I asked:** Build the plain HTML, CSS and browser ES module frontend for browsing, filtering, booking and mock payment.
+- **What came back:** Added both pages, an in-memory mock API/data layer, reusable DOM helpers, responsive styles, tier/quantity controls, checkout countdown and declined-payment retry behavior.
+- **What was wrong (or "nothing"):** Browser review confirmed search, city and maximum-price filtering, sold-out tier disabling, the 10-minute countdown, declined-payment retry and successful payment. It found that the quantity input could temporarily display a value above 10; I added immediate input/change clamping so the control itself stays within 10 and the remaining seats. The mock hold duration was not specified, so it uses a clearly displayed 10-minute countdown.
